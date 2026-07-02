@@ -1,0 +1,25 @@
+# Data collection
+requests>=2.31
+
+# Data wrangling
+pandas>=2.0
+numpy>=1.24
+
+# Sentiment scoring
+vaderSentiment>=3.3.2
+transformers>=4.40
+torch>=2.2
+
+# Statistics (Mann-Whitney U, Spearman, effect sizes)
+scipy>=1.11
+scikit-learn>=1.4
+
+# Change-point detection (PELT, for RQ2 shift points)
+ruptures>=1.1.9
+
+# Config / secrets management
+python-dotenv>=1.0
+
+# Utility
+tqdm>=4.66
+matplotlib>=3.8

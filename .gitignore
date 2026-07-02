@@ -1,0 +1,5 @@
+dota-sentiment-env/
+.env
+data/raw/
+__pycache__/
+*.pyc
