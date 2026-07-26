@@ -3,3 +3,5 @@ dota-sentiment-env/
 data/raw/
 __pycache__/
 *.pyc
+data/interim/
+data/external/

@@ -1,0 +1,170 @@
+PS E:\Honours\Research project\dota2_project> python src/scorer_comparison.py
+Using existing vader_compound column (already computed during sampling).
+Loading twitter-roberta-base-sentiment (downloads ~500MB on first run)...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 201/201 [00:00<00:00, 23642.14it/s]
+Scoring 200 messages with RoBERTa...
+
+==================================================
+VADER
+==================================================
+Accuracy:  0.6150
+Macro F1:  0.6052
+
+Per-class report:
+              precision    recall  f1-score   support
+
+    negative       0.77      0.47      0.59        91
+     neutral       0.47      0.57      0.51        47
+    positive       0.62      0.85      0.72        62
+
+    accuracy                           0.61       200
+   macro avg       0.62      0.63      0.61       200
+weighted avg       0.65      0.61      0.61       200
+
+Confusion matrix (rows=true, cols=predicted), order: ['negative', 'neutral', 'positive']
+[[43 23 25]
+ [12 27  8]
+ [ 1  8 53]]
+
+==================================================
+twitter-roberta-base-sentiment
+==================================================
+Accuracy:  0.4100
+Macro F1:  0.3917
+
+Per-class report:
+              precision    recall  f1-score   support
+
+    negative       0.77      0.36      0.49        91
+     neutral       0.28      0.81      0.41        47
+    positive       0.58      0.18      0.27        62
+
+    accuracy                           0.41       200
+   macro avg       0.54      0.45      0.39       200
+weighted avg       0.59      0.41      0.40       200
+
+Confusion matrix (rows=true, cols=predicted), order: ['negative', 'neutral', 'positive']
+[[33 51  7]
+ [ 8 38  1]
+ [ 2 49 11]]
+
+==================================================
+SCORER SELECTION
+==================================================
+VADER macro F1:   0.6052
+RoBERTa macro F1: 0.3917
+Difference:       0.2135
+
+>>> Primary scorer: VADER (VADER macro F1 substantially higher)
+
+==================================================
+DISAGREEMENT ANALYSIS
+==================================================
+VADER wrong, RoBERTa right: 15 messages
+RoBERTa wrong, VADER right: 56 messages
+
+Sample messages where VADER failed but RoBERTa succeeded:
+                                                      text human_label vader_pred roberta_pred
+                                       enemy dire no blame     neutral   negative      neutral
+                                                   FIASCO!     neutral   negative      neutral
+                pegou uns kill e acha que sabe jogar ?kkkk     neutral   negative      neutral
+                                             ill block him     neutral   negative      neutral
+                                                   im die'     neutral   negative      neutral
+1 commend for each report in doctor / + steam vac security     neutral   positive      neutral
+                                              won the game     neutral   positive      neutral
+                                             alert friend?     neutral   positive      neutral
+                                    d na makagalaw hero ko     neutral   positive      neutral
+                                              free tp home     neutral   positive      neutral
+                                                   win pls     neutral   positive      neutral
+                                                  auto win     neutral   positive      neutral
+                                         so FUcking idiots    negative    neutral     negative
+                                              im also noob     neutral   negative      neutral
+                                  Tongue my anus, niggers.    negative    neutral     negative
+
+Sample messages where RoBERTa failed but VADER succeeded:
+                                                                            text human_label vader_pred roberta_pred
+                                                                        wtf peru    negative   negative      neutral
+                                                                             die    negative   negative      neutral
+NO HUSKAR IS THE ONLY RETARD IN THAT TEAM...HE WILL BE THE LAST TO TALK HAHAHAHA    negative   negative      neutral
+                                                                       wtf bois?    negative   negative      neutral
+                                                                    wtf was that    negative   negative      neutral
+                                                                     wanna ban >    negative   negative      neutral
+                                                           HE IS RETARDED PLAYER    negative   negative      neutral
+                                                                    nyx rage btw    negative   negative      neutral
+                                                                            rage    negative   negative      neutral
+                                                                              xD    positive   positive      neutral
+                                                                        best mid    positive   positive      neutral
+                                                                            ROFL    positive   positive      neutral
+                                                                              XD    positive   positive      neutral
+                                                                      gj gg guys    positive   positive      neutral
+                                                                              xd    positive   positive      neutral
+
+Full results (all predictions, correctness flags) saved to: E:\Honours\Research project\dota2_project\data\interim\scorer_comparison_results.csv
+(dota-sentiment-env) PS E:\Honours\Research project\dota2_project> 
+
+
+
+
+
+
+(dota-sentiment-env) PS E:\Honours\Research project\dota2_project> python src/validate_lexicon_override.py
+Lexicon override applied:
+  'ez': -> -1.5
+  'feed': -> -1.8
+  'throw': -> -1.0
+  'win': -> 0.4
+  'won': -> 0.4
+
+==================================================
+BASELINE VADER (no override)
+==================================================
+Accuracy:  0.6150
+Macro F1:  0.6052
+              precision    recall  f1-score   support
+
+    negative       0.77      0.47      0.59        91
+     neutral       0.47      0.57      0.51        47
+    positive       0.62      0.85      0.72        62
+
+    accuracy                           0.61       200
+   macro avg       0.62      0.63      0.61       200
+weighted avg       0.65      0.61      0.61       200
+
+Confusion matrix (rows=true, cols=predicted), order: ['negative', 'neutral', 'positive']
+[[43 23 25]
+ [12 27  8]
+ [ 1  8 53]]
+
+==================================================
+VADER WITH DOMAIN LEXICON OVERRIDE
+==================================================
+Accuracy:  0.6950
+Macro F1:  0.6800
+              precision    recall  f1-score   support
+
+    negative       0.82      0.65      0.72        91
+     neutral       0.47      0.57      0.52        47
+    positive       0.75      0.85      0.80        62
+
+    accuracy                           0.69       200
+   macro avg       0.68      0.69      0.68       200
+weighted avg       0.72      0.69      0.70       200
+
+Confusion matrix (rows=true, cols=predicted), order: ['negative', 'neutral', 'positive']
+[[59 22 10]
+ [12 27  8]
+ [ 1  8 53]]
+
+==================================================
+SUMMARY
+==================================================
+Accuracy:  0.6150 -> 0.6950  (change: +0.0800)
+Macro F1:  0.6052 -> 0.6800  (change: +0.0749)
+
+Messages whose prediction changed: 17
+  Fixed by override (was wrong, now right): 16
+  Broken by override (was right, now wrong): 0
+
+Full results saved to: E:\Honours\Research project\dota2_project\data\interim\validation_sample_with_override.csv
+(dota-sentiment-env) PS E:\Honours\Research project\dota2_project> 
