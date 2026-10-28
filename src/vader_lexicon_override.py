@@ -55,9 +55,6 @@ LEXICON_OVERRIDE = {
 
 
 def get_analyzer_with_override():
-    """Return a VADER SentimentIntensityAnalyzer with the domain override
-    applied. Use this everywhere VADER scoring happens from now on, instead
-    of instantiating a bare SentimentIntensityAnalyzer()."""
     analyzer = SentimentIntensityAnalyzer()
     analyzer.lexicon.update(LEXICON_OVERRIDE)
     return analyzer

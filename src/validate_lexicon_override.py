@@ -1,12 +1,4 @@
-"""
-Re-validates VADER against the 200-message human-annotated sample with the
-domain-specific lexicon override applied (section 4.5.2), comparing against
-the pre-override baseline to confirm the override actually improves
-agreement with human judgements rather than just shifting scores arbitrarily.
 
-Usage:
-    python src/validate_lexicon_override.py --input data/interim/validation_sample.csv
-"""
 
 import argparse
 from pathlib import Path

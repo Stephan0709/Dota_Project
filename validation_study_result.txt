@@ -168,3 +168,50 @@ Messages whose prediction changed: 17
 
 Full results saved to: E:\Honours\Research project\dota2_project\data\interim\validation_sample_with_override.csv
 (dota-sentiment-env) PS E:\Honours\Research project\dota2_project> 
+
+================================================================================================================
+PS E:\Honours\Research project\dota2_project> python src/segment_phases.py --boundary1-fallback-tier 2
+Determining phase boundaries for 609 matches...
+Saved boundaries for 609 matches to: E:\Honours\Research project\dota2_project\data\interim\match_phase_boundaries.csv
+
+Boundary 1 (early->mid) source breakdown:
+boundary1_source
+tower_tier2    497
+roshan          79
+fixed           33
+Name: count, dtype: int64
+
+Boundary 2 (mid->late) source breakdown:
+boundary2_source
+tower_tier3    566
+fixed           41
+tower_tier4      2
+Name: count, dtype: int64
+
+Boundary 1 timing distribution (seconds), by source:
+                        mean    50%    min     max
+boundary1_source                                  
+fixed             900.000000  900.0  900.0   900.0
+roshan            939.392405  870.0  342.0  1919.0
+tower_tier2       547.774648  582.0  163.0  1109.0
+
+Matches using FIXED fallback for BOTH boundaries: 33 / 609
+(recommend flagging these as a separate stratum per proposal 4.5.1)
+
+Saved phase-tagged chat data to: E:\Honours\Research project\dota2_project\data\interim\chat_with_phases.csv
+Total messages: 8997
+Messages by phase:
+phase
+early    3913
+late     3725
+mid      1359
+Name: count, dtype: int64
+
+Matches with >=1 message in ALL 3 phases for BOTH teams: 56 / 609
+(this is the STRICTEST possible bar - useful as a ceiling reference, but NOT what most trajectory features actually require - see the breakdown below)
+
+--------------------------------------------------
+What each trajectory feature actually requires (proposal 2.5):
+  Slope & volatility (whole-match, per team): 609 / 609 matches ready (already guaranteed by preprocessing.py filtering)
+  Phase delta (early + late only, per team): 158 / 609 matches ready
+(dota-sentiment-env) PS E:\Honours\Research project\dota2_project> 

@@ -1,7 +1,6 @@
 
 
 import argparse
-import json
 from pathlib import Path
 
 import pandas as pd
@@ -10,62 +9,59 @@ RAW_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 INTERIM_DIR = Path(__file__).resolve().parent.parent / "data" / "interim"
 
 
-def team_from_player_slot(player_slot):
-    
-    return "dire" if player_slot >= 128 else "radiant"
+def team_from_slot(slot):
+    """This dataset's 'slot' is already the simple 0-9 index (not the
+    Valve player_slot bitmask our old OpenDota pipeline had to handle)."""
+    return "dire" if slot >= 5 else "radiant"
 
 
-def load_match(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_and_clean_chat():
+    match_path = RAW_DIR / "match.csv"
+    chat_path = RAW_DIR / "chat.csv"
 
-
-def extract_usable_messages(match_data):
-    match_id = match_data.get("match_id")
-    radiant_win = match_data.get("radiant_win")
-
-    rows = []
-    for msg in match_data.get("chat", []):
-        if msg.get("type") != "chat":
-            continue  # drop chatwheel presets
-        if msg.get("time", -1) < 0:
-            continue  # drop pre-game banter
-
-        player_slot = msg.get("player_slot")
-        if player_slot is None:
-            continue  # malformed entry, skip defensively
-
-        rows.append(
-            {
-                "match_id": match_id,
-                "time": msg["time"],
-                "team": team_from_player_slot(player_slot),
-                "player_slot": player_slot,
-                "text": msg.get("key", ""),
-                "radiant_win": radiant_win,
-            }
-        )
-    return rows
-
-
-def process_all_matches():
-    raw_files = sorted(RAW_DIR.glob("match_*.json"))
-    if not raw_files:
-        print(f"No raw match files found in {RAW_DIR}")
+    if not match_path.exists() or not chat_path.exists():
+        print(f"Expected files not found: {match_path} and {chat_path}")
         return None
 
-    all_rows = []
-    for path in raw_files:
-        match_data = load_match(path)
-        rows = extract_usable_messages(match_data)
-        all_rows.extend(rows)
-        print(f"{path.name}: {len(rows)} usable messages")
+    match_df = pd.read_csv(match_path, usecols=["match_id", "radiant_win"])
+    chat_df = pd.read_csv(chat_path)
 
-    df = pd.DataFrame(all_rows)
-    return df
+    before = len(chat_df)
+
+    # Drop null text
+    chat_df = chat_df.dropna(subset=["key"])
+
+    # Drop pre-game messages (same rule as the old pipeline - these
+    # precede the match clock and aren't reactions to any gameplay event)
+    chat_df = chat_df[chat_df["time"] >= 0]
+
+    # Defensive: drop any slot outside the valid 0-9 range. In practice
+    # every such row observed so far already had time < 0 and was
+    # dropped above, but this guards against that not always holding.
+    chat_df = chat_df[(chat_df["slot"] >= 0) & (chat_df["slot"] <= 9)]
+
+    after = len(chat_df)
+    print(f"chat.csv: {before:,} raw rows -> {after:,} usable after cleaning")
+
+    chat_df["team"] = chat_df["slot"].apply(team_from_slot)
+    chat_df = chat_df.rename(columns={"key": "text"})
+
+    # Join in match outcome
+    chat_df = chat_df.merge(match_df, on="match_id", how="left")
+    missing_outcome = chat_df["radiant_win"].isna().sum()
+    if missing_outcome:
+        print(f"WARNING: {missing_outcome} messages had no matching match_id in match.csv - dropping")
+        chat_df = chat_df.dropna(subset=["radiant_win"])
+
+    return chat_df[["match_id", "time", "team", "text", "radiant_win"]]
 
 
 def summarize_match_stats(df):
+    """Per-match total message count and whether both teams are present -
+    matters because a match can clear a total-message threshold while
+    still having zero messages from one team, which breaks per-team
+    trajectory construction just as badly as having too few messages
+    overall."""
     per_match = df.groupby("match_id").agg(
         total_messages=("text", "count"),
         teams_present=("team", lambda s: s.nunique()),
@@ -79,26 +75,22 @@ def main():
         "--min-messages", type=int, default=1,
         help=(
             "Minimum total usable messages a match needs to be included "
-            "in the filtered output. Matches below this are still counted "
-            "and reported, but excluded from the filtered CSV. Default: 1 "
-            "(only removes matches with zero usable messages)."
+            "in the filtered output. Default: 1 (only removes matches "
+            "with zero usable messages)."
         ),
     )
     parser.add_argument(
         "--require-both-teams", action="store_true",
         help=(
-            "Also require at least one message from EACH team for a match "
-            "to be included in the filtered output. A match can clear "
-            "--min-messages while still having zero messages from one "
-            "team, which breaks per-team trajectory construction just as "
-            "badly as having too few messages overall."
+            "Also require at least one message from EACH team for a "
+            "match to be included in the filtered output."
         ),
     )
     args = parser.parse_args()
 
     INTERIM_DIR.mkdir(parents=True, exist_ok=True)
 
-    df = process_all_matches()
+    df = load_and_clean_chat()
     if df is None or df.empty:
         print("No usable messages extracted. Nothing written.")
         return
@@ -119,16 +111,15 @@ def main():
     print("Matches surviving at different message-count thresholds (total messages, either team):")
     for t in [1, 4, 6, 10, 15, 20]:
         n = (per_match["total_messages"] >= t).sum()
-        print(f"  >= {t:2d} messages: {n:4d} matches")
+        print(f"  >= {t:2d} messages: {n:6d} matches")
 
     both_teams = per_match["teams_present"] == 2
     print(f"\nMatches with BOTH teams represented (>=1 msg each): {both_teams.sum()} / {total_matches}")
 
-    
     print("\nCOMBINED (>= threshold messages AND both teams present):")
     for t in [1, 4, 6, 10, 15, 20]:
         n = ((per_match["total_messages"] >= t) & both_teams).sum()
-        print(f"  >= {t:2d} messages + both teams: {n:4d} matches")
+        print(f"  >= {t:2d} messages + both teams: {n:6d} matches")
 
     if args.min_messages > 1 or args.require_both_teams:
         qualifying = per_match["total_messages"] >= args.min_messages

@@ -1,12 +1,4 @@
-"""
-VADER vs twitter-roberta-base-sentiment validation study (section 4.5.2).
 
-Compares both scorers against the manually annotated 200-message sample
-to select the primary scorer for trajectory construction (Task 5+).
-
-Usage:
-    python src/scorer_comparison.py --input data/interim/validation_sample.csv
-"""
 
 import argparse
 from pathlib import Path

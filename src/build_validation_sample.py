@@ -51,11 +51,7 @@ def peek(path):
     print(f"  time     -> {time_col}")
     print(f"  slot     -> {slot_col}")
     print(f"  text     -> {text_col}")
-    print(
-        "\nIf any of these are wrong or None, override with "
-        "--match-id-col / --time-col / --slot-col / --text-col when running "
-        "the full build."
-    )
+    
 
 
 NON_LATIN_PATTERN = re.compile(
@@ -81,8 +77,6 @@ def is_latin_script(text):
 
 
 def classify_strata(compound_score, text):
-    """Return a list of strata this message qualifies for (a message can
-    belong to more than one, e.g. slang term AND near-neutral)."""
     strata = []
     if compound_score < -0.5:
         strata.append("strongly_negative")
@@ -97,9 +91,6 @@ def classify_strata(compound_score, text):
 
 
 def reservoir_add(reservoir, counts_seen, stratum, row):
-    """Reservoir sampling: keeps a uniform random sample of up to
-    RESERVOIR_CAP_PER_STRATUM items per stratum, even when scanning
-    millions of rows without knowing the total in advance."""
     counts_seen[stratum] += 1
     bucket = reservoir[stratum]
     if len(bucket) < RESERVOIR_CAP_PER_STRATUM:
